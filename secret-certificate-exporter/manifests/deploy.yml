@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: secret-certificate-exporter
+    project: secret-certificate-exporter
+  name: secret-certificate-exporter
+  namespace: kube-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secret-certificate-exporter
+  template:
+    metadata:
+      labels:
+        app: secret-certificate-exporter
+        project: secret-certificate-exporter
+    spec:
+      imagePullSecrets:
+      - name: harbor
+      containers:
+      - image: {IMAGE}
+        env:
+        - name: PYTHONWARNINGS
+          value: ignore:Unverified HTTPS request
+        name: secret-certificate-exporter
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: config-certificate-exporter
+          mountPath: "/root/.kube/config"
+          subPath: config
+          readOnly: true
+        resources:
+          requests:
+            memory: "10Mi"
+            cpu: "10m"
+          limits:
+            memory: "150Mi"
+            cpu: "100m"
+      volumes:
+      - name: config-certificate-exporter
+        secret:
+          secretName: config-certificate-exporter
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: secret-certificate-exporter
+  namespace: kube-monitoring
+  labels:
+    project: secret-certificate-exporter
+spec:
+  selector:
+    app: secret-certificate-exporter
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+    name: http
